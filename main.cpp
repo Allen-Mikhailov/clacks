@@ -19,8 +19,10 @@
 #define BLOCK_2_SIZE 0.3
 #define BLOCK_DISTANCE ((BLOCK_1_SIZE+BLOCK_2_SIZE)/2.0)
 
+#define DIGITS 7
+
 #define BLOCK_1_MASS 1.0
-#define BLOCK_2_MASS 10000.0
+const long double BLOCK_2_MASS = pow(100, DIGITS-1);
 
 #define COMBINED_MASS (BLOCK_1_MASS + BLOCK_2_MASS)
 
@@ -36,17 +38,17 @@
 #define BLOCK_COLOR 1, 1, 1
 #define FLOOR_COLOR .8, .8, .8
 
-double block_1_pos = BLOCK_1_INITIAL_POS;
-double block_1_velocity = BLOCK_1_INITIAL_VELOCITY;
+long double block_1_pos = BLOCK_1_INITIAL_POS;
+long double block_1_velocity = BLOCK_1_INITIAL_VELOCITY;
 
-double block_2_pos = BLOCK_2_INITIAL_POS;
-double block_2_velocity = BLOCK_2_INITIAL_VELOCITY;
+long double block_2_pos = BLOCK_2_INITIAL_POS;
+long double block_2_velocity = BLOCK_2_INITIAL_VELOCITY;
 
-double block_1_draw_pos;
-double block_2_draw_pos;
+long double block_1_draw_pos;
+long double block_2_draw_pos;
 
-double sim_time = 0;
-double last_tick;
+long double sim_time = 0;
+long double last_tick;
 
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
@@ -54,15 +56,15 @@ template <typename T> int sgn(T val) {
 
 struct collision
 {
-    double time;
-    double sim_time;
+    long double time;
+    long double sim_time;
     int type; // 0 is wall, 1 is blocks
 
-    float block_1_pos;
-    float block_1_velocity;
+    long double block_1_pos;
+    long double block_1_velocity;
 
-    float block_2_pos;
-    float block_2_velocity;
+    long double block_2_pos;
+    long double block_2_velocity;
 };
 
 std::vector<collision> collisions;
@@ -98,8 +100,8 @@ void drawRect(float left, float top, float right, float bottom)
 int last_collision = 0;
 void timer(int t) {
 
-    double c = clock();
-    sim_time += (double) (c - last_tick) / CLOCKS_PER_SEC;
+    long double c = clock();
+    sim_time += (long double) (c - last_tick) / CLOCKS_PER_SEC;
     //printf("sim_time %f\n", sim_time);
     last_tick = c;
     while (last_collision +1 < collision_count+1 && sim_time >= collisions[last_collision +1].sim_time)
@@ -107,7 +109,7 @@ void timer(int t) {
         last_collision++;
     }
 
-    double time_dif = sim_time - collisions[last_collision].sim_time;
+    long double time_dif = sim_time - collisions[last_collision].sim_time;
 
     block_1_draw_pos = collisions[last_collision].block_1_pos + collisions[last_collision].block_1_velocity * time_dif;
     block_2_draw_pos = collisions[last_collision].block_2_pos + collisions[last_collision].block_2_velocity * time_dif;
@@ -150,9 +152,9 @@ void display() {  // Display function will draw the image.
 
 void block_collision()
 {
-    const double new_block_1_velocity = (BLOCK_1_MASS - BLOCK_2_MASS) / COMBINED_MASS * block_1_velocity
+    const long double new_block_1_velocity = (BLOCK_1_MASS - BLOCK_2_MASS) / COMBINED_MASS * block_1_velocity
         + 2 * BLOCK_2_MASS / COMBINED_MASS * block_2_velocity;
-    const double new_block_2_velocity = (BLOCK_2_MASS - BLOCK_1_MASS) / COMBINED_MASS * block_2_velocity
+    const long double new_block_2_velocity = (BLOCK_2_MASS - BLOCK_1_MASS) / COMBINED_MASS * block_2_velocity
         + 2 * BLOCK_1_MASS / COMBINED_MASS * block_1_velocity;
 
     block_1_velocity = new_block_1_velocity;
@@ -167,38 +169,38 @@ void wall_collision()
 
 void get_next_collision(struct collision * col)
 {
-    double wall_time = DBL_MAX;
+    long double wall_time = DBL_MAX;
     if (block_1_velocity < 0)
         wall_time = (block_1_pos - WALL_POSITION - BLOCK_1_SIZE / 2) / -block_1_velocity;
 
-    const double block_distance = block_2_pos - block_1_pos - BLOCK_DISTANCE; // block 2 will always be to the right of block 1
+    const long double block_distance = block_2_pos - block_1_pos - BLOCK_DISTANCE; // block 2 will always be to the right of block 1
 
-    double collide_time = block_distance / (block_1_velocity - block_2_velocity);
+    long double collide_time = block_distance / (block_1_velocity - block_2_velocity);
 
-    const double block_1_sign = sgn(block_1_velocity);
-    const double block_2_sign = sgn(block_2_velocity);
+    const long double block_1_sign = sgn(block_1_velocity);
+    const long double block_2_sign = sgn(block_2_velocity);
 
-    if (collide_time <= 0.00001)
+    if (collide_time <= 0.000000000001)
         collide_time = DBL_MAX;
 
-    const double collision_time = (wall_time > collide_time) ? collide_time : wall_time;
+    const long double collision_time = (wall_time > collide_time) ? collide_time : wall_time;
 
     block_1_pos += collision_time * block_1_velocity;
     block_2_pos += collision_time * block_2_velocity;
 
     if (wall_time < collide_time) {
-        printf("Wall Collision: ");
+        //printf("Wall Collision: ");
         col->type = 0;
         wall_collision();
     }
     else {
-        printf("Block Collision: ");
+        //printf("Block Collision: ");
         col->type = 1;
         block_collision();
     }
 
-    printf("Block Distance %f, collision_time %f, \nblock_1_pos %f, block_2_pos %f, block_1_vel %f, block_2_vel %f\n", 
-        block_distance, collision_time, block_1_pos, block_2_pos, block_1_velocity, block_2_velocity);
+    //printf("Block Distance %f, collision_time %f, \nblock_1_pos %f, block_2_pos %f, block_1_vel %f, block_2_vel %f\n", 
+    //    block_distance, collision_time, block_1_pos, block_2_pos, block_1_velocity, block_2_velocity);
     col->block_1_pos = block_1_pos;
     col->block_2_pos = block_2_pos;
     col->block_1_velocity = block_1_velocity;
@@ -206,11 +208,11 @@ void get_next_collision(struct collision * col)
     col->time = collision_time;
 }
 
-#define MAX_COLLISIONS 100000
+#define MAX_COLLISIONS 1000000000
 
 void calculate_collisions()
 {
-    double _time = 0;
+    long double _time = 0;
     int i = 0;
 
     struct collision initial_col;
@@ -234,7 +236,7 @@ void calculate_collisions()
 
         collisions.push_back(col);
 
-        printf("Collision at time %f after %f\n\n", _time, col.time);
+        //printf("Collision at time %f after %f\n\n", _time, col.time);
         i++;
     }
 
