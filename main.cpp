@@ -6,6 +6,7 @@
 #include <ctime>
 #include <vector> 
 #include <float.h>
+#include <format>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -19,7 +20,7 @@
 #define BLOCK_DISTANCE ((BLOCK_1_SIZE+BLOCK_2_SIZE)/2.0)
 
 #define BLOCK_1_MASS 1.0
-#define BLOCK_2_MASS 100.0
+#define BLOCK_2_MASS 10000.0
 
 #define COMBINED_MASS (BLOCK_1_MASS + BLOCK_2_MASS)
 
@@ -99,7 +100,7 @@ void timer(int t) {
 
     double c = clock();
     sim_time += (double) (c - last_tick) / CLOCKS_PER_SEC;
-    printf("sim_time %f\n", sim_time);
+    //printf("sim_time %f\n", sim_time);
     last_tick = c;
     while (last_collision +1 < collision_count+1 && sim_time >= collisions[last_collision +1].sim_time)
     {
@@ -115,6 +116,7 @@ void timer(int t) {
     glutTimerFunc(1000 / 60, timer, 0);
 }
 
+#define STRING_TEMPLATE "Collisions %d"
 void display() {  // Display function will draw the image.
 
     glClearColor(0, 0, 0, 1);  // (In fact, this is the default.)
@@ -124,6 +126,18 @@ void display() {  // Display function will draw the image.
     glColor3d(BLOCK_COLOR);
     drawSquare(block_1_draw_pos, FLOOR_POSITION + BLOCK_1_SIZE / 2, BLOCK_1_SIZE);
     drawSquare(block_2_draw_pos, FLOOR_POSITION + BLOCK_2_SIZE / 2, BLOCK_2_SIZE);
+
+    glColor3f(1.0, 0.0, 0.0);
+    glRasterPos2f(-.5, .1); //define position on the screen
+
+    int string_size = snprintf(NULL, 0, STRING_TEMPLATE, last_collision)+1;
+    char* str = (char*)malloc(sizeof(char) * string_size);
+    snprintf(str, string_size, STRING_TEMPLATE, last_collision);
+    char* string_ptr = str;
+
+    while (*str) {
+        glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *str++);
+    }
 
     glColor3d(FLOOR_COLOR);
     drawRect(-1, FLOOR_POSITION, 1, -1); // Floor
@@ -166,7 +180,6 @@ void get_next_collision(struct collision * col)
 
     if (collide_time <= 0.00001)
         collide_time = DBL_MAX;
-    //if (block_1_velocity >= 0 && )
 
     const double collision_time = (wall_time > collide_time) ? collide_time : wall_time;
 
