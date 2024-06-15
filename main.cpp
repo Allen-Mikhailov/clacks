@@ -5,6 +5,7 @@
 #include <time.h>
 #include <ctime>
 #include <vector> 
+#include <float.h>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -13,11 +14,14 @@
 
 #define TIME_STEP (1/60.0)
 
-#define BLOCK_1_SIZE 0.3
+#define BLOCK_1_SIZE 0.1
 #define BLOCK_2_SIZE 0.3
+#define BLOCK_DISTANCE ((BLOCK_1_SIZE+BLOCK_2_SIZE)/2.0)
 
 #define BLOCK_1_MASS 1
 #define BLOCK_2_MASS 100
+
+#define COMBINED_MASS (BLOCK_1_MASS + BLOCK_2_MASS)
 
 #define BLOCK_1_INITIAL_VELOCITY  0.0
 #define BLOCK_2_INITIAL_VELOCITY -1.0
@@ -25,17 +29,23 @@
 #define WALL_POSITION -.5
 #define FLOOR_POSITION -.3
 
+#define BLOCK_COLOR 1, 1, 1
+#define FLOOR_COLOR .8, .8, .8
+
 float block_1_pos = 0;
 float block_1_velocity = BLOCK_1_INITIAL_VELOCITY;
 
 float block_2_pos = 0.5;
 float block_2_velocity = BLOCK_2_INITIAL_VELOCITY;
 
-
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
 
 struct collision
 {
     float time;
+    int type; // 0 is wall, 1 is blocks
 
     float block_1_pos;
     float block_1_velocity;
@@ -61,6 +71,18 @@ void drawSquare(float x1, float y1, float sidelength)
     glEnd();
 }
 
+void drawRect(float left, float top, float right, float bottom)
+{
+    glBegin(GL_POLYGON);
+
+    glVertex2d(right, top);
+    glVertex2d(right, bottom);
+    glVertex2d(left, bottom);
+    glVertex2d(left, top);
+
+    glEnd();
+}
+
 void timer(int t) {
     glutPostRedisplay();
     glutTimerFunc(1000 / 60, timer, 0);
@@ -71,28 +93,92 @@ void display() {  // Display function will draw the image.
     glClearColor(0, 0, 0, 1);  // (In fact, this is the default.)
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Drawing Block 1
-    glColor3d(1, 1, 1);
+    // Drawing Blocks
+    glColor3d(BLOCK_COLOR);
     drawSquare(block_1_pos, FLOOR_POSITION + BLOCK_1_SIZE / 2, BLOCK_1_SIZE);
+    drawSquare(block_2_pos, FLOOR_POSITION + BLOCK_2_SIZE / 2, BLOCK_2_SIZE);
+
+    glColor3d(FLOOR_COLOR);
+    drawRect(-1, FLOOR_POSITION, 1, -1); // Floor
+    drawRect(-1, 1, WALL_POSITION, FLOOR_POSITION);
     
 
     glutSwapBuffers(); // Required to copy color buffer onto the screen.
 
 }
 
-void collide()
+void block_collision()
 {
+    const double new_block_1_velocity = (BLOCK_1_MASS - BLOCK_2_MASS) / COMBINED_MASS * block_1_velocity
+        + 2 * BLOCK_2_MASS / COMBINED_MASS * block_2_velocity;
+    const double new_block_2_velocity = (BLOCK_2_MASS - BLOCK_1_MASS) / COMBINED_MASS * block_2_velocity
+        + 2 * BLOCK_1_MASS / COMBINED_MASS * block_1_velocity;
 
+    block_1_velocity = new_block_1_velocity;
+    block_2_velocity = new_block_2_velocity;
 }
 
+void wall_collision()
+{
+    block_1_pos = WALL_POSITION + (BLOCK_1_SIZE / 2);
+    block_1_velocity = abs(block_1_velocity);
+}
+
+double get_next_collision()
+{
+    double wall_time = DBL_MAX;
+    if (block_1_velocity < 0)
+        wall_time = (block_1_pos - WALL_POSITION - BLOCK_1_SIZE / 2) / -block_1_velocity;
+
+    const double block_distance = block_2_pos - block_1_pos - BLOCK_DISTANCE; // block 2 will always be to the right of block 1
+
+    double collide_time = block_distance / (block_1_velocity - block_2_velocity);
+
+    const double block_1_sign = sgn(block_1_velocity);
+    const double block_2_sign = sgn(block_2_velocity);
+
+    if (collide_time <= 0)
+        collide_time = DBL_MAX;
+    //if (block_1_velocity >= 0 && )
+
+    const double collision_time = (wall_time > collide_time) ? collide_time : wall_time;
+
+    block_1_pos += collision_time * block_1_velocity;
+    block_2_pos += collision_time * block_2_velocity;
+
+    if (wall_time < collide_time) {
+        printf("Wall Collision: ");
+        wall_collision();
+    }
+    else {
+        printf("Block Collision: ");
+        block_collision();
+    }
+
+    printf("Block Distance %f, collision_time %f, block_1_pos %f, block_2_pos %f, block_1_vel %f, block_2_vel %f\n", 
+        block_distance, collision_time, block_1_pos, block_2_pos, block_1_velocity, block_2_velocity);
+
+    return collision_time;
+}
+
+#define MAX_COLLISIONS 100
 void calculate_collisions()
 {
+    double _time = 0;
+    int i = 0;
+    while (!(block_2_velocity >= block_1_velocity && block_1_velocity > 0) && i < MAX_COLLISIONS)
+    {
+        double collision_time = get_next_collision();
 
+        _time += collision_time;
+        printf("Collision at time %f after %f\n\n", _time, collision_time);
+        i++;
+    }
 }
 
 int main(int argc, char** argv) {  // Initialize GLUT and 
 
-    
+    calculate_collisions();
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE);    // Use single color buffer and no depth buffer.
