@@ -18,8 +18,8 @@
 #define BLOCK_2_SIZE 0.3
 #define BLOCK_DISTANCE ((BLOCK_1_SIZE+BLOCK_2_SIZE)/2.0)
 
-#define BLOCK_1_MASS 1
-#define BLOCK_2_MASS 100
+#define BLOCK_1_MASS 1.0
+#define BLOCK_2_MASS 100.0
 
 #define COMBINED_MASS (BLOCK_1_MASS + BLOCK_2_MASS)
 
@@ -137,7 +137,7 @@ double get_next_collision()
     const double block_1_sign = sgn(block_1_velocity);
     const double block_2_sign = sgn(block_2_velocity);
 
-    if (collide_time <= 0)
+    if (collide_time <= 0.00001)
         collide_time = DBL_MAX;
     //if (block_1_velocity >= 0 && )
 
@@ -155,13 +155,13 @@ double get_next_collision()
         block_collision();
     }
 
-    printf("Block Distance %f, collision_time %f, block_1_pos %f, block_2_pos %f, block_1_vel %f, block_2_vel %f\n", 
+    printf("Block Distance %f, collision_time %f, \nblock_1_pos %f, block_2_pos %f, block_1_vel %f, block_2_vel %f\n", 
         block_distance, collision_time, block_1_pos, block_2_pos, block_1_velocity, block_2_velocity);
 
     return collision_time;
 }
 
-#define MAX_COLLISIONS 100
+#define MAX_COLLISIONS 100000
 void calculate_collisions()
 {
     double _time = 0;
@@ -174,6 +174,8 @@ void calculate_collisions()
         printf("Collision at time %f after %f\n\n", _time, collision_time);
         i++;
     }
+
+    printf("There were %d total collisions\n", i);
 }
 
 int main(int argc, char** argv) {  // Initialize GLUT and 
