@@ -17,7 +17,7 @@
 #define BLOCK_2_SIZE .30
 const double BLOCK_DISTANCE = ((BLOCK_1_SIZE + BLOCK_2_SIZE) / 2.0);
 
-#define DIGITS 5
+#define DIGITS 3
 
 #define BLOCK_1_MASS 1.0
 const double BLOCK_2_MASS = pow(100, DIGITS-1);
@@ -165,44 +165,6 @@ void wall_collision()
     block_1_velocity = abs(block_1_velocity);
 }
 
-void old_get_next_collision(struct collision * col)
-{
-    double wall_time = DBL_MAX;
-    if (block_1_velocity < 0)
-        wall_time = (block_1_pos - WALL_POSITION - BLOCK_1_SIZE / 2) / -block_1_velocity;
-
-    const double block_distance = block_2_pos - block_1_pos - BLOCK_DISTANCE; // block 2 will always be to the right of block 1
-
-    double collide_time = block_distance / (block_1_velocity - block_2_velocity);
-
-    if (collide_time <= 0)
-        collide_time = DBL_MAX;
-
-    const double collision_time = (wall_time > collide_time) ? collide_time : wall_time;
-
-    block_1_pos += collision_time * block_1_velocity;
-    block_2_pos += collision_time * block_2_velocity;
-
-    if (wall_time < collide_time) {
-        printf("Wall Collision: ");
-        col->type = 0;
-        wall_collision();
-    }
-    else {
-        printf("Block Collision: ");
-        col->type = 1;
-        block_collision();
-    }
-
-    printf("Block Distance %f, collision_time %f, \nblock_1_pos %f, block_2_pos %f, block_1_vel %f, block_2_vel %f\n", 
-        block_distance, collision_time, block_1_pos, block_2_pos, block_1_velocity, block_2_velocity);
-    col->block_1_pos = block_1_pos;
-    col->block_2_pos = block_2_pos;
-    col->block_1_velocity = block_1_velocity;
-    col->block_2_velocity = block_2_velocity;
-    col->time = collision_time;
-}
-
 const int MAX_COLLISIONS = pow(10, DIGITS);
 
 void fill_collision(struct collision *col)
@@ -261,7 +223,7 @@ void calculate_collisions()
 
         fill_collision(wall_col);
         wall_col->time = wall_time;
-        _time += block_col.time;
+        _time += wall_col->time;
         wall_col->sim_time = _time;
 
         collisions.push_back(*wall_col);
